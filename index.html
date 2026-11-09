@@ -1,108 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="si">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Modeling Video App</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modeling Video Maker - Pro</title>
 <style>
-body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding:15px}
+body{background:#111;color:#fff;font-family:Arial;text-align:center;padding:15px;margin:0}
 h1{font-size:22px}
-button{background:#ff2d55;color:#fff;border:0;padding:14px 20px;border-radius:12px;font-size:16px;margin:8px;width:90%;max-width:400px}
-select,input{padding:12px;border-radius:10px;width:90%;max-width:400px;margin:8px}
-canvas{width:100%;max-width:360px;border-radius:16px;background:#000;margin-top:10px}
-video{width:100%;max-width:360px;border-radius:16px;margin-top:10px}
+select,input{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:none;font-size:16px}
+.btn{background:#ff2d55;color:#fff;padding:14px;border:none;border-radius:12px;width:100%;font-size:17px;font-weight:bold;margin:8px 0}
+.stage{width:100%;aspect-ratio:9/16;background:#000;border-radius:16px;overflow:hidden;position:relative;margin-top:10px}
+.stage img{width:100%;height:100%;object-fit:cover;transform-origin:center}
+.anim-catwalk{animation:catwalk 3s ease-in-out infinite}
+@keyframes catwalk{0%,100%{transform:scale(1.15) translateX(0) rotate(0)}25%{transform:scale(1.18) translateX(-3%) rotate(-1.2deg)}50%{transform:scale(1.15) translateX(0) rotate(0)}75%{transform:scale(1.18) translateX(3%) rotate(1.2deg)}}
+.anim-hairflip{animation:hair 2.8s ease-in-out infinite}
+@keyframes hair{0%,100%{transform:scale(1.1) skewX(0)}30%{transform:scale(1.2) skewX(-3deg) translateY(-2%)}60%{transform:scale(1.15) skewX(3deg) translateY(1%)}}
+.anim-sway{animation:sway 4s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:scale(1.15) translateX(-4%)}50%{transform:scale(1.15) translateX(4%)}}
+.anim-breathe{animation:breathe 3.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1.1)}50%{transform:scale(1.22) translateY(-2%)}}
+.anim-zoomspin{animation:zoomspin 5s ease-in-out infinite}
+@keyframes zoomspin{0%{transform:scale(1) rotate(0)}50%{transform:scale(1.3) rotate(1.5deg)}100%{transform:scale(1) rotate(0)}}
+.anim-runway{animation:runway 3s ease-in-out infinite}
+@keyframes runway{0%{transform:scale(1.3) translateY(5%)}50%{transform:scale(1.1) translateY(-3%)}100%{transform:scale(1.3) translateY(5%)}}
 </style>
 </head>
 <body>
-<h1>📸 Modeling Video Maker</h1>
-<p>Photo එකක් දාලා Video එකක් හදාගන්න</p>
-<input type="file" id="imgInput" accept="image/*"><br>
+<h1>📸 Modeling Video Maker - PRO</h1>
+<p>Photo එකක් දාලා Pro Animation එකක් හදන්න</p>
+<input type="file" id="file" accept="image/*">
 <select id="effect">
-<option value="zoomIn">Zoom In - Slow</option>
-<option value="zoomOut">Zoom Out</option>
-<option value="panLeft">Pan Left - Runway Style</option>
-<option value="panRight">Pan Right</option>
-<option value="zoomFace">Face Zoom - Modeling</option>
-</select><br>
-<select id="duration">
-<option value="3000">3 Sec - Reels / TikTok</option>
-<option value="5000">5 Sec</option>
-<option value="8000">8 Sec</option>
-</select><br>
-<button onclick="preview()">▶ Preview බලන්න</button>
-<button onclick="makeVideo()">⬇ Video එක හදලා Download කරගන්න</button>
-<canvas id="c" width="720" height="1280"></canvas>
-<video id="v" controls style="display:none"></video>
-<p id="status"></p>
+<option value="anim-catwalk">🚶‍♀️ Catwalk Walk - ඇවිදිනවා වගේ</option>
+<option value="anim-hairflip">💇‍♀️ Hair Flip - කොණ්ඩේ විසි වෙනවා</option>
+<option value="anim-sway">💃 Sway - ඇඟ හොලවනවා</option>
+<option value="anim-breathe">😮‍💨 Breathe + Zoom - හුස්ම ගන්නවා වගේ</option>
+<option value="anim-runway">✨ Runway Zoom - Runway එකේ වගේ</option>
+<option value="anim-zoomspin">🌀 Zoom Spin</option>
+</select>
+<select id="dur"><option value="3">3 Sec - Reels / TikTok</option><option value="5">5 Sec</option><option value="8">8 Sec</option></select>
+<button class="btn" onclick="preview()">▶ Preview බලන්න</button>
+<button class="btn" style="background:#fff;color:#000" onclick="download()">⬇ Video එක හදලා Download කරගන්න</button>
+<div class="stage"><img id="img" style="display:none"></div>
+<canvas id="canvas" width="720" height="1280" style="display:none"></canvas>
 <script>
-let img=new Image();
-let url='';
-document.getElementById('imgInput').addEventListener('change',e=>{
-  let f=e.target.files[0];
-  url=URL.createObjectURL(f);
-  img.src=url;
-  img.onload=()=>{draw(0);document.getElementById('status').innerText='Photo එක Ready ✅'}
+let imgEl=document.getElementById('img');
+document.getElementById('file').addEventListener('change',e=>{
+let f=e.target.files[0]; if(!f) return;
+let url=URL.createObjectURL(f); imgEl.src=url; imgEl.style.display='block';
 });
-const canvas=document.getElementById('c');
-const ctx=canvas.getContext('2d');
-function draw(p){
-  if(!img.src) return;
-  ctx.fillStyle='#000';ctx.fillRect(0,0,720,1280);
-  let eff=document.getElementById('effect').value;
-  let scale=1, dx=0, dy=0;
-  if(eff==='zoomIn') scale=1+p*0.4;
-  if(eff==='zoomOut') scale=1.4-p*0.4;
-  if(eff==='zoomFace') scale=1.1+p*0.5;
-  if(eff==='panLeft') dx=-p*100;
-  if(eff==='panRight') dx=p*100;
-  let iw=img.width, ih=img.height;
-  let s=Math.max(720/iw,1280/ih)*scale;
-  let w=iw*s, h=ih*s;
-  let x=(720-w)/2+dx;
-  let y=(1280-h)/2+dy;
-  if(eff==='zoomFace') y=(1280-h)/2 - p*150;
-  ctx.drawImage(img,x,y,w,h);
-}
 function preview(){
-  if(!img.src){alert('පලමුව Photo එකක් දාපන්');return}
-  let start=Date.now();
-  let dur=parseInt(document.getElementById('duration').value);
-  function loop(){
-    let p=(Date.now()-start)/dur;
-    if(p>1) p=1;
-    draw(p);
-    if(p<1) requestAnimationFrame(loop);
-  }
-  loop();
+let eff=document.getElementById('effect').value;
+imgEl.className=''; void imgEl.offsetWidth; imgEl.className=eff;
 }
-async function makeVideo(){
-  if(!img.src){alert('පලමුව Photo එකක් දාපන්');return}
-  document.getElementById('status').innerText='Video එක හැදෙනවා... ⏳';
-  let dur=parseInt(document.getElementById('duration').value);
-  let stream=canvas.captureStream(30);
-  let rec=new MediaRecorder(stream,{mimeType:'video/webm'});
-  let chunks=[];
-  rec.ondataavailable=e=>chunks.push(e.data);
-  rec.onstop=()=>{
-    let blob=new Blob(chunks,{type:'video/webm'});
-    let vurl=URL.createObjectURL(blob);
-    let v=document.getElementById('v');
-    v.src=vurl; v.style.display='block';
-    let a=document.createElement('a');
-    a.href=vurl; a.download='modeling-video.webm'; a.innerText='Download Video';
-    a.style.color='#ff2d55'; a.style.display='block'; a.style.marginTop='10px';
-    document.body.appendChild(a);
-    document.getElementById('status').innerText='හරි! පහලින් Download කරගන්න ✅';
-  };
-  rec.start();
-  let start=Date.now();
-  function loop(){
-    let p=(Date.now()-start)/dur;
-    if(p>1){rec.stop();return}
-    draw(p);
-    requestAnimationFrame(loop);
-  }
-  loop();
+async function download(){
+let file=document.getElementById('file').files[0]; if(!file){alert('Photo එකක් තෝරන්න!');return;}
+let eff=document.getElementById('effect').value;
+let dur=parseInt(document.getElementById('dur').value);
+let bitmap=await createImageBitmap(file);
+let canvas=document.getElementById('canvas'); let ctx=canvas.getContext('2d');
+let stream=canvas.captureStream(30); let rec=new MediaRecorder(stream,{mimeType:'video/webm'});
+let chunks=[]; rec.ondataavailable=e=>chunks.push(e.data);
+rec.onstop=()=>{let blob=new Blob(chunks,{type:'video/webm'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='modeling-video.webm'; a.click();};
+rec.start(); let start=performance.now();
+function draw(){
+let t=(performance.now()-start)/1000; let p=(t%dur)/dur;
+ctx.fillStyle='#000'; ctx.fillRect(0,0,720,1280);
+let scale=1.15, tx=0, ty=0, rot=0, skew=0;
+if(eff=='anim-catwalk'){scale=1.15+0.03*Math.sin(p*Math.PI*2); tx=Math.sin(p*Math.PI*2)*20; rot=Math.sin(p*Math.PI*2)*0.02;}
+if(eff=='anim-hairflip'){scale=1.15+0.05*Math.sin(p*Math.PI*2); skew=Math.sin(p*Math.PI*2)*0.05;}
+if(eff=='anim-sway'){tx=Math.sin(p*Math.PI*2)*30;}
+if(eff=='anim-breathe'){scale=1.1+0.12*Math.abs(Math.sin(p*Math.PI)); ty=-20*Math.abs(Math.sin(p*Math.PI));}
+if(eff=='anim-runway'){scale=1.3-0.2*Math.abs(Math.sin(p*Math.PI)); ty=30*Math.cos(p*Math.PI*2);}
+if(eff=='anim-zoomspin'){scale=1+0.3*Math.abs(Math.sin(p*Math.PI)); rot=Math.sin(p*Math.PI)*0.03;}
+ctx.save(); ctx.translate(360,640); ctx.rotate(rot); ctx.transform(1,0,skew,1,0,0); ctx.scale(scale,scale); ctx.translate(-360+tx,-640+ty);
+let iw=bitmap.width, ih=bitmap.height; let s=Math.max(720/iw,1280/ih); let w=iw*s, h=ih*s;
+ctx.drawImage(bitmap,(720-w)/2,(1280-h)/2,w,h); ctx.restore();
+if(t<dur) requestAnimationFrame(draw); else rec.stop();
+}
+draw();
 }
 </script>
 </body>
