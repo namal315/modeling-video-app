@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modeling Video App</title>
+<style>
+body{font-family:sans-serif;background:#111;color:#fff;text-align:center;padding:15px}
+h1{font-size:22px}
+button{background:#ff2d55;color:#fff;border:0;padding:14px 20px;border-radius:12px;font-size:16px;margin:8px;width:90%;max-width:400px}
+select,input{padding:12px;border-radius:10px;width:90%;max-width:400px;margin:8px}
+canvas{width:100%;max-width:360px;border-radius:16px;background:#000;margin-top:10px}
+video{width:100%;max-width:360px;border-radius:16px;margin-top:10px}
+</style>
+</head>
+<body>
+<h1>📸 Modeling Video Maker</h1>
+<p>Photo එකක් දාලා Video එකක් හදාගන්න</p>
+<input type="file" id="imgInput" accept="image/*"><br>
+<select id="effect">
+<option value="zoomIn">Zoom In - Slow</option>
+<option value="zoomOut">Zoom Out</option>
+<option value="panLeft">Pan Left - Runway Style</option>
+<option value="panRight">Pan Right</option>
+<option value="zoomFace">Face Zoom - Modeling</option>
+</select><br>
+<select id="duration">
+<option value="3000">3 Sec - Reels / TikTok</option>
+<option value="5000">5 Sec</option>
+<option value="8000">8 Sec</option>
+</select><br>
+<button onclick="preview()">▶ Preview බලන්න</button>
+<button onclick="makeVideo()">⬇ Video එක හදලා Download කරගන්න</button>
+<canvas id="c" width="720" height="1280"></canvas>
+<video id="v" controls style="display:none"></video>
+<p id="status"></p>
+<script>
+let img=new Image();
+let url='';
+document.getElementById('imgInput').addEventListener('change',e=>{
+  let f=e.target.files[0];
+  url=URL.createObjectURL(f);
+  img.src=url;
+  img.onload=()=>{draw(0);document.getElementById('status').innerText='Photo එක Ready ✅'}
+});
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+function draw(p){
+  if(!img.src) return;
+  ctx.fillStyle='#000';ctx.fillRect(0,0,720,1280);
+  let eff=document.getElementById('effect').value;
+  let scale=1, dx=0, dy=0;
+  if(eff==='zoomIn') scale=1+p*0.4;
+  if(eff==='zoomOut') scale=1.4-p*0.4;
+  if(eff==='zoomFace') scale=1.1+p*0.5;
+  if(eff==='panLeft') dx=-p*100;
+  if(eff==='panRight') dx=p*100;
+  let iw=img.width, ih=img.height;
+  let s=Math.max(720/iw,1280/ih)*scale;
+  let w=iw*s, h=ih*s;
+  let x=(720-w)/2+dx;
+  let y=(1280-h)/2+dy;
+  if(eff==='zoomFace') y=(1280-h)/2 - p*150;
+  ctx.drawImage(img,x,y,w,h);
+}
+function preview(){
+  if(!img.src){alert('පලමුව Photo එකක් දාපන්');return}
+  let start=Date.now();
+  let dur=parseInt(document.getElementById('duration').value);
+  function loop(){
+    let p=(Date.now()-start)/dur;
+    if(p>1) p=1;
+    draw(p);
+    if(p<1) requestAnimationFrame(loop);
+  }
+  loop();
+}
+async function makeVideo(){
+  if(!img.src){alert('පලමුව Photo එකක් දාපන්');return}
+  document.getElementById('status').innerText='Video එක හැදෙනවා... ⏳';
+  let dur=parseInt(document.getElementById('duration').value);
+  let stream=canvas.captureStream(30);
+  let rec=new MediaRecorder(stream,{mimeType:'video/webm'});
+  let chunks=[];
+  rec.ondataavailable=e=>chunks.push(e.data);
+  rec.onstop=()=>{
+    let blob=new Blob(chunks,{type:'video/webm'});
+    let vurl=URL.createObjectURL(blob);
+    let v=document.getElementById('v');
+    v.src=vurl; v.style.display='block';
+    let a=document.createElement('a');
+    a.href=vurl; a.download='modeling-video.webm'; a.innerText='Download Video';
+    a.style.color='#ff2d55'; a.style.display='block'; a.style.marginTop='10px';
+    document.body.appendChild(a);
+    document.getElementById('status').innerText='හරි! පහලින් Download කරගන්න ✅';
+  };
+  rec.start();
+  let start=Date.now();
+  function loop(){
+    let p=(Date.now()-start)/dur;
+    if(p>1){rec.stop();return}
+    draw(p);
+    requestAnimationFrame(loop);
+  }
+  loop();
+}
+</script>
+</body>
+</html>
